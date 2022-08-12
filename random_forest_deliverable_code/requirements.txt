@@ -1,0 +1,10 @@
+pandas
+numpy 
+scipy
+websockets
+alpaca-trade-api
+jupyter
+sklearn
+matplotlib
+joblib
+streamlit

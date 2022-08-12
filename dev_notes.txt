@@ -1,0 +1,177 @@
+
+run scripts as (inside your venv):
+python3 app.py                          # data gathering script
+python3 train_model.py                  # training script, creates training model artefact, TRAINS ON DAILY DATA FROM YAHOO FINANCE
+python3 query_db_and_predict.py         # prediction script, takes data from db
+streamlit run streamlit_app.py          # streamlit app for visualization dashboard
+jupyter notebook                        # jupyter notebook for data exploration in there open query_db_and_predict.ipynb
+
+-----------------------------------------------------------------------------------------------------------------------
+
+
+websocket data gathering script is called app.py, 
+it takes api keys from config.ini file 
+script connects to websocket stream and is able to automatically reconnect
+data is stored in sqlite db 
+db is created automatically 
+I have added example shell scripts for managing the stream script via cron
+they need to be modified based on your actual server setup
+
+script was run on paper trading account
+you will need to modify line 166 to use on real account
+
+
+Prediction scripts:
+best is to use the query_db_and_predict.ipynb jupyter notebook and run it locally
+it has basic visualization and ability to zoom in on data with modified zooming function 
+explicitely defined within the notebook
+this specific version is handling missing intra day data and also shows like 200 predicted points
+
+train_model.py trains the random forest algorithm on daily data from yahoo finance, since i didnt have enough
+one minute data, 
+daily trends should generalize well to smaller timescales, since stock prices are fractals pretty much
+but of course the model should be retrained on minute data once we have bunch of them 
+
+
+query_db_and_predict.py is regular command line script with hardcoded search in db for AAPL stock
+shows some predictions and then prints dataframe with all the data 
+
+adding also my database with SPY, AAPL and IBM data,
+streamlit dashboard should work well with it sraight away
+
+also adding 2 google colab notebooks for random forest training and predictions
+
+--------------------------------------------------------------------------
+
+
+
+
+
+tested with my personal alpaca paper API key:
+-------------------------------------------------
+endpoint:
+https://paper-api.alpaca.markets
+
+API Key ID:
+aaabbbbbccccddd
+
+Secret Key:
+aaaaaaaaaaaaaabbbbbbbbbbbbbbccccccccccccccddddddddd
+-------------------------------------------------
+
+env vars 
+
+APCA_API_KEY_ID='aaabbbccc'
+APCA_API_SECRET_KEY='aaabbbcccdddeeefffggghhh'
+APCA_API_BASE_URL='https://paper-api.alpaca.markets'
+APCA_API_DATA_URL='https://data.alpaca.markets'
+
+
+
+
+python3 -m venv .env
+source .env/bin/activate
+
+websocket stream info
+https://github.com/alpacahq/alpaca-trade-api-python
+'iex' is free websocket plan
+
+
+to get live stream:
+
+pip3 install pandas
+pip3 install numpy 
+pip3 install scipy
+pip3 install websockets
+
+then install alpaca
+pip3 install alpaca-trade-api
+
+
+
+do not use quotes in config.ini file
+just put your API keys as regular text
+the config parser module will understand
+
+
+# extra libraries needed for Random Forest classifier predictions:
+------------------------------------------------------------------
+pip3 install jupyter
+pip3 install sklearn
+pip3 install matplotlib
+pip3 install joblib
+pip3 install streamlit
+
+
+
+
+
+
+
+
+sqlite3 database structure:
+
+(.env) (base) [user@VM alpaca_websocket]$ sqlite3 alpaca_websocket_stream_data.db 
+SQLite version 3.35.4 2021-04-02 15:20:15
+Enter ".help" for usage hints.
+sqlite> select * from alpaca_websocket_stream_data;
+2022-07-19 15:13:36.318999126-04:00|AAPL|150.635|1|V|['@', 'I']|C|9519
+2022-07-19 15:13:36.672001072-04:00|AAPL|150.625|12|V|['@', 'I']|C|9520
+2022-07-19 15:13:38.986243604-04:00|AAPL|150.61|12|V|['@', 'I']|C|9521
+2022-07-19 15:13:42.498645433-04:00|AAPL|150.6|100|V|['@']|C|9522
+2022-07-19 15:13:42.498821396-04:00|AAPL|150.6|100|V|['@']|C|9523
+2022-07-19 15:13:45.266210847-04:00|AAPL|150.6|100|V|['@']|C|9524
+2022-07-19 15:13:45.266210847-04:00|AAPL|150.6|200|V|['@']|C|9525
+2022-07-19 15:13:46.465284669-04:00|AAPL|150.61|10|V|['@', 'I']|C|9526
+2022-07-19 15:13:50.914793160-04:00|AAPL|150.63|100|V|['@']|C|9527
+2022-07-19 15:13:51.353199139-04:00|AAPL|150.635|1|V|['@', 'I']|C|9528
+2022-07-19 15:13:58.299232836-04:00|AAPL|150.63|100|V|['@']|C|9529
+2022-07-19 15:13:58.299232836-04:00|AAPL|150.63|290|V|['@']|C|9530
+2022-07-19 15:13:58.299247761-04:00|AAPL|150.63|10|V|['@', 'I']|C|9531
+2022-07-19 15:14:13.609557483-04:00|AAPL|150.64|17|V|['@', 'I']|C|9532
+2022-07-19 15:14:17.287425460-04:00|AAPL|150.645|1|V|['@', 'I']|C|9533
+sqlite> 
+
+
+OPEN ISSUES:
+random forest is inserting price equal to 0$ when there is no price data
+ideally we should be interpolating the price data in such case 
+or we should pospone the predictions until historical price data is fully available
+at least for 200 ticks
+
+
+making prediction and then waiting 60 seconds to start new round of data processing
+and predictions is introducing slight time drift between rounds of data processing
+eventually we will need to write a function that gets triggered at the start of full minute
+eg:
+12:00, 12:01, 12:02
+so not sleep based execution  
+best would be to run predictions from cron every minute, this is also more stable than daemonized python script
+
+
+I noticed that Im anchoring uncomputed moving averages to zero, (when there is not enough data to compute them)
+maybe I should leave them as NaN 
+
+
+The streamlit app is hard to terminate for some reason sometimes, just stop it with ctrl+c pressed multiple times
+or with kill command on PID of streamlit app
+
+
+Regarding Random Forest model accuracy we do not yet have accuracy, f1 score, precision and recall,
+confusion matrix, ROC curve, etc.
+
+profitability backtests are also missing
+
+
+In general, there might be bugs in the script that I haven't found yet
+not recommending to use this script for trading with real money
+more testing is needed, scripts serve as proof of concept
+
+
+
+NOTE:
+when using laptop that has both conda and regular pip packages
+encountered package not found/package mismatch errors when using
+jupyter notebook locally!!!
+
+for trading, ideally use on clean VM where pip and conda re not conflicting

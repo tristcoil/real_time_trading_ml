@@ -1,0 +1,99 @@
+run script as 
+python3 app.py    (inside your venv)
+
+main script is called app.py, it takes api keys from config.ini file 
+script connects to websocket stream and is able to automatically reconnect
+data is stored in sqlite db 
+db is created automatically 
+I have added example shell scripts for managing the stream script via cron
+they need to be modified based on your actual server setup
+
+script was run on paper trading account
+you will need to modify line 166 to use on real account
+
+--------------------------------------------------------------------------
+
+
+
+
+
+tested with my personal alpaca paper API key:
+-------------------------------------------------
+endpoint:
+https://paper-api.alpaca.markets
+
+API Key ID:
+aaabbbbbccccddd
+
+Secret Key:
+aaaaaaaaaaaaaabbbbbbbbbbbbbbccccccccccccccddddddddd
+-------------------------------------------------
+
+env vars 
+
+APCA_API_KEY_ID='aaabbbccc'
+APCA_API_SECRET_KEY='aaabbbcccdddeeefffggghhh'
+APCA_API_BASE_URL='https://paper-api.alpaca.markets'
+APCA_API_DATA_URL='https://data.alpaca.markets'
+
+
+
+
+python3 -m venv .env
+source .env/bin/activate
+
+websocket stream info
+https://github.com/alpacahq/alpaca-trade-api-python
+'iex' is free websocket plan
+
+
+to get live stream:
+
+pip3 install pandas
+pip3 install numpy 
+pip3 install scipy
+pip3 install websockets
+
+then install alpaca
+pip3 install alpaca-trade-api
+
+#in case we want to use alpaca marketstore db
+#pip3 install pymarketstore
+#pip3 install --upgrade protobuf==3.20.0     # for issue with connecting to marketplace db
+
+
+
+do not use quotes in config.ini file
+just put your API keys as regular text
+the config parser module will understand
+
+
+
+
+
+
+
+sqlite3 handling:
+
+(.env) (base) [user@VM alpaca_websocket]$ sqlite3 alpaca_websocket_stream_data.db 
+SQLite version 3.35.4 2021-04-02 15:20:15
+Enter ".help" for usage hints.
+sqlite> select * from alpaca_websocket_stream_data;
+2022-07-19 15:13:36.318999126-04:00|AAPL|150.635|1|V|['@', 'I']|C|9519
+2022-07-19 15:13:36.672001072-04:00|AAPL|150.625|12|V|['@', 'I']|C|9520
+2022-07-19 15:13:38.986243604-04:00|AAPL|150.61|12|V|['@', 'I']|C|9521
+2022-07-19 15:13:42.498645433-04:00|AAPL|150.6|100|V|['@']|C|9522
+2022-07-19 15:13:42.498821396-04:00|AAPL|150.6|100|V|['@']|C|9523
+2022-07-19 15:13:45.266210847-04:00|AAPL|150.6|100|V|['@']|C|9524
+2022-07-19 15:13:45.266210847-04:00|AAPL|150.6|200|V|['@']|C|9525
+2022-07-19 15:13:46.465284669-04:00|AAPL|150.61|10|V|['@', 'I']|C|9526
+2022-07-19 15:13:50.914793160-04:00|AAPL|150.63|100|V|['@']|C|9527
+2022-07-19 15:13:51.353199139-04:00|AAPL|150.635|1|V|['@', 'I']|C|9528
+2022-07-19 15:13:58.299232836-04:00|AAPL|150.63|100|V|['@']|C|9529
+2022-07-19 15:13:58.299232836-04:00|AAPL|150.63|290|V|['@']|C|9530
+2022-07-19 15:13:58.299247761-04:00|AAPL|150.63|10|V|['@', 'I']|C|9531
+2022-07-19 15:14:13.609557483-04:00|AAPL|150.64|17|V|['@', 'I']|C|9532
+2022-07-19 15:14:17.287425460-04:00|AAPL|150.645|1|V|['@', 'I']|C|9533
+sqlite> 
+
+

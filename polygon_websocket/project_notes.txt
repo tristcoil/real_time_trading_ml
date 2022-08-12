@@ -1,0 +1,78 @@
+Notes about timezones:
+
+now is eastern time UTC -4 hours, careful with daylight savings it is -5hours
+
+EST
+09:30 AM eastern start of capture
+16:00 PM eastern time kill the script by cron
+
+UTC
+13:30 start of capture
+20:00 kill the script by cron
+
+Easiest would be to set default server timezone to Eastern time.
+
+
+
+#parent dir on the server:
+/home/user/polygon/
+
+#file with list of stocks, one ticker per line
+/home/user/polygon/stock_list.csv
+
+
+Scripts that are being used:
+---------------------------
+# websocket stream script, listens to polygon.io websocket minute stream
+# to start websocket capture:
+/home/user/anaconda3/bin/conda run -n polygon_env python /home/AdminAccount/polygon/stream_script.py
+
+# example how to process data from websocket capture file into aggregated timeframes
+# the option True or False refers to computation of indicators on minute timeframe
+# and their aggregation to one big minute file with indicators 
+/home/user/anaconda3/bin/conda run -n polygon_env python /home/AdminAccount/polygon/Concat.py 30Minutes True
+/home/user/anaconda3/bin/conda run -n polygon_env python /home/AdminAccount/polygon/Concat.py 1Hour False
+
+# this script checks if websocket capture is running
+# if not, script will start the capture again (runs from cron)
+/home/user/polygon/start_if_dead.sh
+
+# script that kills websocket script every workday at 20:00 UTC time 
+# it has 30 second waiting period, so can be called exactly at market close
+# the last minute data will be captured
+/home/user/polygon/kill_stream.sh
+
+After market is closed, we will be running various aggregation scripts (Concat.py), these are spaced 5 minutes apart for now.
+Can be spaced more if they take long time to run.
+
+
+
+----------------------------------------------------------
+
+actual crontab:
+############################################################
+# server is in UTC time, be careful about daylight savings #
+############################################################
+
+# start capture every workday at 13:29 UTC time
+29 13 * * 1-5 /home/user/anaconda3/bin/conda run -n polygon_env python /home/AdminAccount/polygon/stream_script.py
+
+# start if websocket stream died
+*/5 14-19 * * 1-5 /home/user/polygon/start_if_dead.sh
+
+# kill script every workday at 20:01 UTC time - noticed 3 script instances occasionaly
+0 20 * * 1-5 /home/user/polygon/kill_stream.sh
+
+# time aggregations at the end of the day
+5 20 * * 1-5 /home/user/anaconda3/bin/conda run -n polygon_env python /home/user/polygon/Concat.py 30Minutes True
+10 20 * * 1-5 /home/user/anaconda3/bin/conda run -n polygon_env python /home/user/polygon/Concat.py 1Hour False
+15 20 * * 1-5 /home/user/anaconda3/bin/conda run -n polygon_env python /home/user/polygon/Concat.py 2Hours False
+20 20 * * 1-5 /home/user/anaconda3/bin/conda run -n polygon_env python /home/user/polygon/Concat.py 3Hours False
+25 20 * * 1-5 /home/user/anaconda3/bin/conda run -n polygon_env python /home/user/polygon/Concat.py 4Hours False
+30 20 * * 1-5 /home/user/anaconda3/bin/conda run -n polygon_env python /home/user/polygon/Concat.py 5Hours False
+35 20 * * 1-5 /home/user/anaconda3/bin/conda run -n polygon_env python /home/user/polygon/Concat.py 6Hours False
+40 20 * * 1-5 /home/user/anaconda3/bin/conda run -n polygon_env python /home/user/polygon/Concat.py Days False
+45 20 * * 1-5 /home/user/anaconda3/bin/conda run -n polygon_env python /home/user/polygon/Concat.py Weeks False
+50 20 * * 1-5 /home/user/anaconda3/bin/conda run -n polygon_env python /home/user/polygon/Concat.py Months False
+
+
