@@ -125,13 +125,13 @@ def plot_train_data(df):
     return None
 
 
-def define_target_condition(df):
+def define_target_condition(df, n_ticks = 55):
 
     # price higher later - bad predictive results
     # df['target_cls'] = np.where(df['Adj Close'].shift(-34) > df['Adj Close'], 1, 0)
 
     # price above trend multiple days later
-    df["target_cls"] = np.where(df["Adj Close"].shift(-55) > df.EMA150.shift(-55), 1, 0)
+    df["target_cls"] = np.where(df["Adj Close"].shift(-n_ticks) > df.EMA150.shift(-n_ticks), 1, 0)
 
     # important, remove NaN values
     df = df.fillna(0).copy()
@@ -141,135 +141,10 @@ def define_target_condition(df):
     return df
 
 
-def splitting_and_training(df):
-    # __predictors__
-    predictors_list = [
-        "aboveSAR",
-        "aboveUpperBB",
-        "belowLowerBB",
-        "RSI",
-        "oversoldRSI",
-        "overboughtRSI",
-        "aboveEMA5",
-        "aboveEMA10",
-        "aboveEMA15",
-        "aboveEMA20",
-        "aboveEMA30",
-        "aboveEMA40",
-        "aboveEMA50",
-        "aboveEMA60",
-        "aboveEMA70",
-        "aboveEMA80",
-        "aboveEMA90",
-        "aboveEMA100",
-    ]
-
-    # __features__
-    X = df[predictors_list].fillna(0)
-    # print('X.tail', X.tail())
-    X = X.to_numpy()
-    # print('X', X)
-
-    # __targets__
-    y_cls = df.target_cls.fillna(0)
-    # print('y_cls.tail', y_cls.tail(10))
-    y_cls = y_cls.to_numpy()
-    # print('y_cls', y_cls)
-
-    # __train test split__
-    # from sklearn.model_selection import train_test_split
-    y = y_cls
-    X_cls_train, X_cls_test, y_cls_train, y_cls_test = train_test_split(
-        X, y, test_size=0.3, random_state=432, stratify=y
-    )
-
-    # print (X_cls_train.shape, y_cls_train.shape)
-    # print (X_cls_test.shape, y_cls_test.shape)
-
-    # __RANDOM FOREST __       - retrainable - warm_start
-    # from sklearn.ensemble import RandomForestClassifier
-
-    # Create a Gaussian Classifier - incremental training - warm_start=True
-    clf = RandomForestClassifier(
-        n_estimators=500,
-        criterion="gini",
-        max_depth=20,
-        min_samples_leaf=10,
-        n_jobs=-1,
-        warm_start=True,
-    )
-
-    # __ACTUAL TRAINING __
-    clf = clf.fit(X_cls_train, y_cls_train)
-    # clf
-
-    # __making accuracy report__
-    # ideally should be getting better with each round
-    y_cls_pred = clf.predict(X_cls_test)
-
-    # from sklearn.metrics import classification_report
-    report = classification_report(y_cls_test, y_cls_pred)
-    # print(report)
-
-    return clf
 
 
-def predict_timeseries(df, clf):
-
-    # making sure we have good dimensions
-    # column will be rewritten later
-    df["Buy"] = np.nan
-
-    print("df length: ", len(df))
-
-    # for i in range(len(df)):
-    #    print('above sar: ', df["aboveSAR"][i])
-
-    # iterate over last 20 rows in a dataframe
-    # use df.iterrows() to iterate over rows
-    #for i, row in df.tail(
-    #    20
-    #).iterrows():  # predict for small subset of data, otherwise it takes too long
-
-    for i, row in df.iterrows():    # predict for each row
-
-        X_cls_valid = [
-            [
-                df["aboveSAR"][i],
-                df["aboveUpperBB"][i],
-                df["belowLowerBB"][i],
-                df["RSI"][i],
-                df["oversoldRSI"][i],
-                df["overboughtRSI"][i],
-                df["aboveEMA5"][i],
-                df["aboveEMA10"][i],
-                df["aboveEMA15"][i],
-                df["aboveEMA20"][i],
-                df["aboveEMA30"][i],
-                df["aboveEMA40"][i],
-                df["aboveEMA50"][i],
-                df["aboveEMA60"][i],
-                df["aboveEMA70"][i],
-                df["aboveEMA80"][i],
-                df["aboveEMA90"][i],
-                df["aboveEMA100"][i],
-            ]
-        ]
-
-        y_cls_pred_valid = clf.predict(X_cls_valid)
-        df["Buy"][i] = y_cls_pred_valid[0].copy()
-
-        print("step: ", i, "predicted class: ", df["Buy"][i])
 
 
-    # add new column to better visualize Long only trades
-    # graphs will look better, since no anchoring to zero for short trades
-    df['Long'] = df['Buy'] * df['Adj Close'] 
-    df['Long'].replace(0, np.nan, inplace=True) 
-
-    print(df.tail())
-
-    return df
 
 
 def plot_stock_prediction(df, ticker):
@@ -289,8 +164,7 @@ def plot_stock_prediction(df, ticker):
 
     plt.scatter(
         df["Date"],
-        #df["Buy"] * df["Adj Close"],
-        df["Long"],
+        df["Buy"] * df["Adj Close"],
         label="Buy",
         marker="^",
         color="magenta",
@@ -305,54 +179,67 @@ def plot_stock_prediction(df, ticker):
     return None
 
 
-def plot_stock_prediction_zoom(df, ticker):
+def plot_stock_prediction_zoom(df, ticker, ticks_back):
     # --- plot only Long trades and zoom in on last data ---
-    
+
     # plot  values and significant levels
-    
-    df = df.iloc[-20:]
-    
+    # df.reset_index(inplace=True)
+
+    # zoom in
+    df = df.iloc[-ticks_back:]  # use eg. 50 for zooming in
+
     plt.figure(figsize=(20, 7))
     plt.title("Predictive model " + str(ticker))
-    plt.plot(df["Date"], df["Adj Close"], label="High", alpha=0.4)
+    plt.plot(df.index, df["Adj Close"], label="High", alpha=0.4)
 
-    plt.plot(df["Date"], df["EMA10"], label="EMA10", alpha=0.2)
-    plt.plot(df["Date"], df["EMA20"], label="EMA20", alpha=0.2)
-    plt.plot(df["Date"], df["EMA30"], label="EMA30", alpha=0.2)
-    plt.plot(df["Date"], df["EMA40"], label="EMA40", alpha=0.2)
-    plt.plot(df["Date"], df["EMA50"], label="EMA50", alpha=0.2)
-    plt.plot(df["Date"], df["EMA100"], label="EMA100", alpha=0.2)
-    plt.plot(df["Date"], df["EMA150"], label="EMA150", alpha=0.79)
-    plt.plot(df["Date"], df["EMA200"], label="EMA200", alpha=0.99)
+    plt.plot(df.index, df["EMA10"], label="EMA10", alpha=0.2)
+    plt.plot(df.index, df["EMA20"], label="EMA20", alpha=0.2)
+    plt.plot(df.index, df["EMA30"], label="EMA30", alpha=0.2)
+    plt.plot(df.index, df["EMA40"], label="EMA40", alpha=0.2)
+    plt.plot(df.index, df["EMA50"], label="EMA50", alpha=0.2)
+    plt.plot(df.index, df["EMA100"], label="EMA100", alpha=0.2)
+    plt.plot(df.index, df["EMA150"], label="EMA150", alpha=0.79)
+    plt.plot(df.index, df["EMA200"], label="EMA200", alpha=0.99)
+
+    # this dataobject plotting gives intraday gaps since data from non trading time is not there
+    # plt.scatter(
+    #    df["Date"],
+    #    #df["Buy"] * df["Adj Close"],
+    #    df['Long'],
+    #    label="Buy",
+    #    marker="^",
+    #    color="magenta",
+    #    alpha=0.55,
+    # )
+
+    # workaround with plotting over index
 
     plt.scatter(
-        df["Date"],
-        #df["Buy"] * df["Adj Close"],
-        df['Long'],
+        df.index,
+        # df["Buy"] * df["Adj Close"],
+        df["Long"],
         label="Buy",
         marker="^",
         color="magenta",
         alpha=0.55,
     )
-    # lt.scatter(df.index, df['sell_sig'], label='Sell', marker='v')
+
+    # avoid intraday gaps by overlaying timestamp values over index ticks
+    plt.xticks(df.index, df["Date"], rotation="vertical")
+
+    # make sure the x date ticks are not overlapping
+    plt.locator_params(axis="x", nbins=15)
+
+    # plt.xticks(x, labels, rotation='vertical')
+    # Pad margins so that markers don't get clipped by the axes
+    # plt.margins(0.2)
+    # Tweak spacing to prevent clipping of tick-labels
+    # plt.subplots_adjust(bottom=0.15)
 
     plt.legend()
-
     plt.show()
 
     return None
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 def save_model(clf):
@@ -379,7 +266,7 @@ def plot_stock_prediction_streamlit(df, ticker):
 
     ax.scatter(
         df["Date"],
-        #df["Buy"] * df["Adj Close"],
+        # df["Buy"] * df["Adj Close"],
         df["Long"],
         label="Buy",
         marker="^",
@@ -396,16 +283,13 @@ def plot_stock_prediction_streamlit(df, ticker):
     return st.pyplot(fig)
 
 
-
-
-
 def plot_stock_prediction_zoom_streamlit(df, ticker):
     # --- plot only Long trades and zoom in on last data ---
-    
+
     # plot  values and significant levels
-    
+
     df = df.iloc[-20:]
-    
+
     # plot  values and significant levels
     fig, ax = plt.subplots()
     # ax.figure(figsize=(20, 7))
@@ -423,7 +307,7 @@ def plot_stock_prediction_zoom_streamlit(df, ticker):
 
     ax.scatter(
         df["Date"],
-        #df["Buy"] * df["Adj Close"],
+        # df["Buy"] * df["Adj Close"],
         df["Long"],
         label="Buy",
         marker="^",
@@ -438,10 +322,3 @@ def plot_stock_prediction_zoom_streamlit(df, ticker):
     # st.pyplot(fig)
 
     return st.pyplot(fig)
-
-
-
-
-
-
-
