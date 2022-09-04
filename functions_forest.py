@@ -30,81 +30,52 @@ pd.set_option("expand_frame_repr", False)
 
 def splitting_and_training(df):
     # __predictors__
-    predictors_list = [
-        "aboveSAR",
-        "aboveUpperBB",
-        "belowLowerBB",
-        "RSI",
-        "oversoldRSI",
-        "overboughtRSI",
-        "aboveEMA5",
-        "aboveEMA10",
-        "aboveEMA15",
-        "aboveEMA20",
-        "aboveEMA30",
-        "aboveEMA40",
-        "aboveEMA50",
-        "aboveEMA60",
-        "aboveEMA70",
-        "aboveEMA80",
-        "aboveEMA90",
-        "aboveEMA100",
-        "aboveEMA200",
-        "LongSig",
-        "ShortSig",
-        "WLongSig",
-        "WShortSig",
-        "HH",
-        "LL",
-        "HL",
-        "LH",
-        "trend_conf",
-    ]
+    predictors_list = ['aboveSAR','aboveUpperBB','belowLowerBB','RSI','oversoldRSI','overboughtRSI',
+                       'aboveEMA5','aboveEMA10','aboveEMA15','aboveEMA20','aboveEMA30','aboveEMA40','aboveEMA50',
+                       'aboveEMA60','aboveEMA70','aboveEMA80','aboveEMA90',
+                       'aboveEMA100','aboveEMA200',
+                       'LongSig','ShortSig','WLongSig','WShortSig',
+                       'HH','LL','HL','LH',
+                       'trend_conf'
+                      ]
+    
 
     # __features__
     X = df[predictors_list].fillna(0)
-    # print('X.tail', X.tail())
+    #print('X.tail', X.tail())
     X = X.to_numpy()
-    # print('X', X)
+    #print('X', X)
 
     # __targets__
     y_cls = df.target_cls.fillna(0)
-    # print('y_cls.tail', y_cls.tail(10))
+    #print('y_cls.tail', y_cls.tail(10))
     y_cls = y_cls.to_numpy()
-    # print('y_cls', y_cls)
+    #print('y_cls', y_cls)
 
     # __train test split__
-    # from sklearn.model_selection import train_test_split
-    y = y_cls
-    X_cls_train, X_cls_test, y_cls_train, y_cls_test = train_test_split(
-        X, y, test_size=0.3, random_state=432, stratify=y
-    )
+    #from sklearn.model_selection import train_test_split
+    y=y_cls
+    X_cls_train, X_cls_test, y_cls_train, y_cls_test = train_test_split(X, y, test_size=0.3, random_state=432, stratify=y)
 
-    # print (X_cls_train.shape, y_cls_train.shape)
-    # print (X_cls_test.shape, y_cls_test.shape)
+    #print (X_cls_train.shape, y_cls_train.shape)
+    #print (X_cls_test.shape, y_cls_test.shape)
 
     # __RANDOM FOREST __       - retrainable - warm_start
-    # from sklearn.ensemble import RandomForestClassifier
+    #from sklearn.ensemble import RandomForestClassifier
 
-    # Create a Gaussian Classifier - incremental training - warm_start=True
-    clf = RandomForestClassifier(
-        n_estimators=500,
-        criterion="gini",
-        max_depth=20,
-        min_samples_leaf=10,
-        n_jobs=-1,
-        warm_start=True,
-    )
+    #Create a Gaussian Classifier - incremental training - warm_start=True
+    clf=RandomForestClassifier(n_estimators=500, criterion='gini', max_depth=20, min_samples_leaf=10, 
+                               n_jobs=-1, warm_start=True)
 
     # __ACTUAL TRAINING __
     clf = clf.fit(X_cls_train, y_cls_train)
-    # clf
+    #clf
 
     # __making accuracy report__
     # ideally should be getting better with each round
     y_cls_pred = clf.predict(X_cls_test)
 
-    # from sklearn.metrics import classification_report
+    #from sklearn.metrics import classification_report
     report = classification_report(y_cls_test, y_cls_pred)
     print(report)
 
@@ -125,11 +96,11 @@ def predict_timeseries(df, clf):
 
     # iterate over last 20 rows in a dataframe
     # use df.iterrows() to iterate over rows
-    # for i, row in df.tail(
+    #for i, row in df.tail(
     #    20
-    # ).iterrows():  # predict for small subset of data, otherwise it takes too long
+    #).iterrows():  # predict for small subset of data, otherwise it takes too long
 
-    for i, row in df.iterrows():  # predict for each row
+    for i, row in df.iterrows():    # predict for each row
 
         X_cls_valid = [
             [
@@ -160,7 +131,7 @@ def predict_timeseries(df, clf):
                 df["LL"][i],
                 df["HL"][i],
                 df["LH"][i],
-                df["trend_conf"][i],
+                df["trend_conf"][i]
             ]
         ]
 
@@ -169,10 +140,11 @@ def predict_timeseries(df, clf):
 
         print("step: ", i, "predicted class: ", df["Buy"][i])
 
+
     # add new column to better visualize Long only trades
     # graphs will look better, since no anchoring to zero for short trades
-    df["Long"] = df["Buy"] * df["Adj Close"]
-    df["Long"].replace(0, np.nan, inplace=True)
+    df['Long'] = df['Buy'] * df['Adj Close'] 
+    df['Long'].replace(0, np.nan, inplace=True) 
 
     print(df.tail())
 
