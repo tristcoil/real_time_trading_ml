@@ -103,9 +103,12 @@ pip3 install joblib
 pip3 install streamlit
 
 
+Live streamlit prediction plotting:
+start uvicorn websocket server
+uvicorn producer_main:app --port 8000 --reload
 
-
-
+start streamlit consumer
+streamlit run consumer_main.py
 
 
 

@@ -8,3 +8,7 @@ sklearn
 matplotlib
 joblib
 streamlit
+fastapi
+uvicorn[standard]
+aiohttp
+plotly

@@ -59,6 +59,10 @@ def superjumpTBB(df):
     mult = 2.0
     b_mult = 2.5
 
+    print('LEN SRC:', len(src))
+
+
+
     atrlength = 14
     smoothing = "RMA"  # options=["RMA", "SMA", "EMA", "WMA"]
     SLAtr = 1.0
@@ -100,18 +104,18 @@ def superjumpTBB(df):
 
     return pd.DataFrame(
         {
-            "Date": df.Date,
-            "Open": df.Open,
-            "High": df.High,
-            "Low": df.Low,
-            "Close": df.Close,
-            "Basis": basis,
-            "Upper": upper,
-            "Lower": lower,
-            "Wide Upper": b_upper,
-            "Wide Lower": b_lower,
-            "SL Upper": b_upper + atr * SLAtr,
-            "SL Lower": b_lower - atr * SLAtr,
+            "Date": df.Date,       # something here is doubling the length of an index for certain cases
+            #"Open": df.Open,      # length of something is double the length of the input dataframe
+            #"High": df.High,
+            #"Low": df.Low,
+            #"Close": df.Close,
+            #"Basis": basis,
+            #"Upper": upper,
+            #"Lower": lower,
+            #"Wide Upper": b_upper,
+            #"Wide Lower": b_lower,
+            #"SL Upper": b_upper + atr * SLAtr,   # issue in multiplication for reconstructed df from stream
+            #"SL Lower": b_lower - atr * SLAtr,   # issue in multiplication for reconstructed df from stream
             "LongSig": LongSig,
             "ShortSig": ShortSig,
             "WLongSig": WLongSig,
