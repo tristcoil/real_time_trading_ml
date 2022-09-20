@@ -11,9 +11,20 @@ from functions_ml import *  # machine learning
 from functions_viz import *  # visualization
 from functions_db import *  # database
 
+from configparser import ConfigParser
+
+
 
 app = FastAPI()
 
+# Alpaca related vars
+config = ConfigParser()
+config.read("config.ini")
+API_KEY = config.get("alpaca", "API_KEY")
+SECRET_KEY = config.get("alpaca", "SECRET_KEY")
+
+print(f"API_KEY:    ", API_KEY)
+print(f"SECRET_KEY: ", SECRET_KEY)
 
 # var definition:
 symbol = "AAPL"
@@ -63,9 +74,19 @@ async def websocket_endpoint(websocket: WebSocket):
         ####df['Date'] = df['Date'].astype(str)   # datetime object cannot be sent as JSON payload
 
         # TEMP WORKAROUND, TAKING DATA FROM YAHOO
-        symbol = "BTC-USD"   # crypto streams all day new ticks, good for testing
-        df = get_data(symbol, interval)
+        ###symbol = "BTC-USD"   # crypto streams all day new ticks, good for testing
+        ###df = get_data(symbol, interval)
+        ###df["Date"] = df["Date"].astype(str)
+
+
+        # TEMP WORKAROUND, TAKING DATA FROM Alpaca
+        df = get_alpaca_hist_data("BTCUSD", "crypto", API_KEY, SECRET_KEY)    # crypto
+        #df = get_alpaca_hist_data("AAPL", "stocks", API_KEY, SECRET_KEY)    # stocks
         df["Date"] = df["Date"].astype(str)
+
+
+
+
 
         # --- split dataframe to dictionary ---
         data_dict = df.to_dict()

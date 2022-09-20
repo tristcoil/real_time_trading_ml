@@ -1,4 +1,5 @@
 import aiohttp
+import asyncio
 from collections import deque, defaultdict
 from functools import partial
 
@@ -25,13 +26,21 @@ from functions_superjump import *
 from functions_HHLL import *
 from functions_HHLL_conf import *
 from functions_HHLL_channel import *
+from functions_gator import *
 
 from functions_forest import *  # Random Forest classifier
 
+from concurrent.futures import ThreadPoolExecutor   # for parallel processing of blocking task with async
 
 WS_CONN = "ws://localhost:8000/sample"  # for connection to stream
 
 clf = joblib.load("./random_forest.joblib")  # load the trained model
+
+
+#import nest_asyncio
+#nest_asyncio.apply() 
+
+#_executor = ThreadPoolExecutor(1)  
 
 
 # var definition:
@@ -40,6 +49,19 @@ clf = joblib.load("./random_forest.joblib")  # load the trained model
 # table_name= 'alpaca_websocket_stream_data'
 # granularity = '1Min'
 # interval = "1m" # for yahoo finance model training if needed
+
+
+#def sync_blocking(df_short):
+#    time.sleep(2)
+#    predict_timeseries(df_short, clf)
+
+
+#async def hello_world(loop, df_short):
+#    # run blocking function in another thread,
+#    # and wait for it's result:
+#    await loop.run_in_executor(_executor, sync_blocking(df_short))
+
+
 
 
 async def consumer(status, status2):
@@ -81,6 +103,7 @@ async def consumer(status, status2):
                 # converting 'u','d', 'none' to integers for 'trend_conf' col
                 out_df3.replace({"d": 0, "u": 1, "none": -1}, inplace=True)
                 out_df4 = HHLL_Channel(df)
+                out_df5 = rsi_strategy(df)
                 #
                 #    # compute general indicators, features and target
                 df = compute_technical_indicators(df)
@@ -93,13 +116,17 @@ async def consumer(status, status2):
                 df = pd.merge(df, out_df2, how="inner", on="Date")
                 df = pd.merge(df, out_df3, how="inner", on="Date")
                 df = pd.merge(df, out_df4, how="inner", on="Date")
+                df = pd.merge(df, out_df5, how="inner", on="Date")
 
                 #    # actual prediction
                 #    # can take longer if the dataframe is big
                 #    # so we are making shorter dataframe for this
                 #    # bigger df is causing async conn to be unstable
                 #    # we would need to use async loop for long running processes
-                df_short = df.iloc[-5:]
+                df_short = df.iloc[-10:]
+
+                
+                #loop.run_until_complete(hello_world(loop, df_short))
 
                 predict_timeseries(df_short, clf)
 

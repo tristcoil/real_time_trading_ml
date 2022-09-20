@@ -31,12 +31,13 @@ print(f"SECRET_KEY: ", SECRET_KEY)
 # docs:       https://github.com/alpacahq/alpaca-trade-api-python
 # parameters: https://alpaca.markets/docs/api-references/market-data-api/stock-pricing-data/historical/#bars
 # note: free stock subscription allows to get only data older than 15 minutes from now
+# https://stackoverflow.com/questions/8556398/generate-rfc-3339-timestamp-in-python
 # time has to be in RFC 3339 format 2022-09-17T00:00:00.52Z, get it like now.isoformat()
 # when we specify just limit=10000 candles, it returns empty df
 # ------------------------------------------------------------------------
 
 
-def get_alpaca_hist_data(symbol, data_type):
+def get_alpaca_hist_data(symbol, data_type, API_KEY, SECRET_KEY):
     # function downloads minute data from alpaca api
     # examples
     # symbol = "AAPL"
@@ -72,7 +73,8 @@ def get_alpaca_hist_data(symbol, data_type):
         # CBSE looks to have big trading volume
 
         # display only rows from df dataframe that contain exchange column equal to CBSE
-        #df = df[df['exchange'] == 'CBSE']
+        df = df[df['exchange'] == 'CBSE']
+        df.reindex(inplace=True)    # reindex dataframe to start from 0
         #print(df)
 
         # other useful api options
@@ -103,7 +105,8 @@ def get_alpaca_hist_data(symbol, data_type):
     # rename df columns "timestamp", 'open', 'high', 'low', 'close', 'volume' to "Date", 'Open', 'High', 'Low', 'Close', 'Volume'
     df.reset_index(inplace=True)
     df = df.rename(columns={"timestamp": "Date", 'open': 'Open', 'high': 'High', 'low': 'Low', 'close': 'Close', 'volume': 'Volume'})
-    df = df[['Date', 'Open', 'High', 'Low', 'Close', 'Volume']]
+    df['Adj Close'] = df['Close']
+    df = df[['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']]
 
     print("FINAL DATAFRAME: ")
     print(df)
@@ -137,8 +140,8 @@ def get_alpaca_hist_data(symbol, data_type):
 
 if __name__ == "__main__":
     
-    get_alpaca_hist_data("BTCUSD", "crypto")
-    get_alpaca_hist_data("AAPL", "stocks")
+    get_alpaca_hist_data("BTCUSD", "crypto", API_KEY, SECRET_KEY)
+    get_alpaca_hist_data("AAPL", "stocks", API_KEY, SECRET_KEY)
 
 
 

@@ -36,7 +36,7 @@ def splitting_and_training(df):
                        'aboveEMA100','aboveEMA200',
                        'LongSig','ShortSig','WLongSig','WShortSig',
                        'HH','LL','HL','LH',
-                       'trend_conf','HHLL_channel_sig'
+                       'trend_conf','HHLL_channel_sig','rsi_gator_sig'
                       ]
     
 
@@ -132,7 +132,8 @@ def predict_timeseries(df, clf):
                 df["HL"][i],
                 df["LH"][i],
                 df["trend_conf"][i],
-                df["HHLL_channel_sig"][i]
+                df["HHLL_channel_sig"][i],
+                df["rsi_gator_sig"][i]
             ]
         ]
 
