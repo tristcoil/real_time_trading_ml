@@ -5,12 +5,29 @@
 
 import datetime
 
-from functions_ml import *
+import talib as ta
+import yfinance as yf
+import pandas as pd
+import sqlite3
+
+# custom function imports
+from functions_gen import *        # general functions
+from functions_ml import *         # machine learning
+from functions_viz import *        # visualization
+from functions_db import *         # database
 
 
-start_time = datetime.datetime(1980, 1, 1)
-#end_time = datetime.datetime(2019, 1, 20)
-end_time = datetime.datetime.now().date().isoformat()         # today
+# custom indicators moved to modules
+from functions_superjump import *
+from functions_HHLL import *
+from functions_HHLL_conf import *
+from functions_HHLL_channel import *
+from functions_gator import *
+
+# Random Forest specific functions
+from functions_forest import *
+
+
 
 
 # training stock data
@@ -33,23 +50,62 @@ tickers = ['SPY', 'F', 'IBM', 'GE', 'AAPL', 'ADM']
 #          ]
 
 
-for ticker in tickers:
+def training_sequence(tickers, interval="1m", model_name="./random_forest.joblib"):
+    # initiates training sequence for random forest classifier
 
-    df = get_data(ticker, start_time, end_time)
-    #plot_train_data(df)   # plot training data
-    df = compute_technical_indicators(df)
-    df = compute_features(df)
-    df=define_target_condition(df)
-
-    clf = splitting_and_training(df)
-
-    save_model(clf)
-    
-    # commenting out saves time during training
-    #df = predict_timeseries(df, clf)
-    #plot_stock_prediction(df, ticker)
+    for ticker in tickers:
+        print('ticker: ', ticker)
+        df = get_data(ticker, interval)
+        #plot_train_data(df, ticker)
 
 
+        #print(df)
+
+        # custom indicator extension:
+        # create extra features from new indicators into new dfs
+        # and then join the dfs based on minute datetime with original df
+        # our model also needs 1/0 instead of True/False
+        # thrend_conf col needs conversion from 'u','d' to 1,0
+        out_df1 = superjumpTBB(df)      # superjumpTBB
+        out_df1.replace({False: 0, True: 1}, inplace=True)
+
+        out_df2 = HHLL_Strategy(df)  # HHHL indicator
+        out_df2.replace({False: 0, True: 1}, inplace=True)
+
+        out_df3 = HHLL_confirmation(df)  # HHHL indicator
+        out_df3.replace({'d': 0, 'u': 1, 'none': -1}, inplace=True)
+
+        out_df4 = HHLL_Channel(df)
+        
+        out_df5 = rsi_strategy(df) # RSI gator indicator
+
+
+        df = compute_technical_indicators(df)
+        df = compute_features(df)
+        df = define_target_condition(df)
+
+        # TODO, verify that inner join is what we really need
+        # merging with new dataframes with custom indicators
+        df = pd.merge(df, out_df1, how='inner', on='Date')
+        df = pd.merge(df, out_df2, how='inner', on='Date')
+        df = pd.merge(df, out_df3, how='inner', on='Date')
+        df = pd.merge(df, out_df4, how='inner', on='Date')
+        df = pd.merge(df, out_df5, how='inner', on='Date')
+
+        #print('regular df')
+        #print(df)
+
+        clf = splitting_and_training(df)
+
+        save_model(clf, model_name)
+        
+        # commenting out saves time during training
+        #df = predict_timeseries(df, clf)
+        #plot_stock_prediction(df, ticker)
+
+    return None
 
 
 
+
+training_sequence(tickers, interval="1m", model_name="./random_forest.joblib")

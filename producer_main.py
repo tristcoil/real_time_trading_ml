@@ -34,6 +34,25 @@ granularity = "1Min"
 interval = "1m"  # for yahoo finance model training if needed
 
 
+# temp workaround with hardcoded dict
+# data_dict = {
+#    "DateTime": ["2022-10-01", "2022-10-02", "2022-10-03", "2022-10-04"],
+#    "Open": [23, 21, 22, 21],
+#    "High": [26 + np.random.randn(), 22, 23, 22],
+#    "Low": [
+#        22 - np.random.randn(),
+#        20 - np.random.randn(),
+#        21 - np.random.randn(),
+#        20 - np.random.randn(),
+#    ],
+#    "Close": [22, 21, 22, 21],
+#    "Adj Close": [22, 21, 22, 21],
+#    "Long": [26, 27, 28, 29],
+# }
+#
+# df = pd.DataFrame(data_dict)
+
+
 @app.websocket("/sample")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
@@ -46,32 +65,13 @@ async def websocket_endpoint(websocket: WebSocket):
         # - and send it to consumer
 
         # ---- get data from db ------
-
         # gets all data from db for given ticker
-        ####data =  get_ticker_data_from_db(symbol, db_name, table_name)
+        #####data =  get_ticker_data_from_db(symbol, db_name, table_name)
 
         # ---- convert to df ---------
-        # temp workaround with hardcoded dict
-        # data_dict = {
-        #    "DateTime": ["2022-10-01", "2022-10-02", "2022-10-03", "2022-10-04"],
-        #    "Open": [23, 21, 22, 21],
-        #    "High": [26 + np.random.randn(), 22, 23, 22],
-        #    "Low": [
-        #        22 - np.random.randn(),
-        #        20 - np.random.randn(),
-        #        21 - np.random.randn(),
-        #        20 - np.random.randn(),
-        #    ],
-        #    "Close": [22, 21, 22, 21],
-        #    "Adj Close": [22, 21, 22, 21],
-        #    "Long": [26, 27, 28, 29],
-        # }
-        #
-        # df = pd.DataFrame(data_dict)
-
         # resample tick by tick data from db to minute timeframe and save to df
-        ####df =  resample_data(data, granularity=granularity)
-        ####df['Date'] = df['Date'].astype(str)   # datetime object cannot be sent as JSON payload
+        ######df =  resample_data(data, granularity=granularity)
+        ######df['Date'] = df['Date'].astype(str)   # datetime object cannot be sent as JSON payload
 
         # TEMP WORKAROUND, TAKING DATA FROM YAHOO
         ###symbol = "BTC-USD"   # crypto streams all day new ticks, good for testing
